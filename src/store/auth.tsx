@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { setAccount } from './account';
 import Login from '../pages/Login';
+import SetPassword from '../pages/SetPassword';
 
 interface AuthValue {
   session: Session | null;
@@ -15,6 +16,7 @@ export const useAuth = () => useContext(AuthContext);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [recovery, setRecovery] = useState(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
@@ -25,8 +27,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(data.session);
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
+      // Arriving from a password setup/recovery email link.
+      if (event === 'PASSWORD_RECOVERY') setRecovery(true);
       if (s?.user?.email) setAccount({ email: s.user.email, emailVerified: true });
     });
     return () => sub.subscription.unsubscribe();
@@ -42,6 +46,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         <p className="text-sm font-medium text-slate-500">Loading…</p>
       </div>
     );
+  }
+
+  if (recovery) {
+    return <SetPassword email={session?.user?.email} onDone={() => setRecovery(false)} />;
   }
 
   if (!session) return <Login />;
