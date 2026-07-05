@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Plus, Search, Landmark } from 'lucide-react';
+import dayjs from 'dayjs';
+import { Plus, Search, Landmark, Calendar } from 'lucide-react';
 import { useData } from '../store/DataContext';
 import type { Loan, LoanStatus, PaymentFrequency, LoanAttachment } from '../types';
 import { peso, initials, fmtDate } from '../lib/format';
@@ -17,17 +18,67 @@ const FREQ_LABEL: Record<PaymentFrequency, string> = {
   monthly: 'monthly',
 };
 
+type DateRange = 'all' | 'today' | 'yesterday' | '7d' | '15d' | '30d' | 'month' | 'custom';
+
+const DATE_OPTIONS: { value: DateRange; label: string }[] = [
+  { value: 'all', label: 'All dates' },
+  { value: 'today', label: 'Today' },
+  { value: 'yesterday', label: 'Yesterday' },
+  { value: '7d', label: 'Last 7 days' },
+  { value: '15d', label: 'Last 15 days' },
+  { value: '30d', label: 'Last 30 days' },
+  { value: 'month', label: 'Current month' },
+  { value: 'custom', label: 'Customize date' },
+];
+
+/** Returns the [start, end] epoch range for a date filter, or null for "all". */
+function computeRange(range: DateRange, from: string, to: string): { start: number; end: number } | null {
+  const now = dayjs();
+  switch (range) {
+    case 'today':
+      return { start: now.startOf('day').valueOf(), end: now.endOf('day').valueOf() };
+    case 'yesterday': {
+      const y = now.subtract(1, 'day');
+      return { start: y.startOf('day').valueOf(), end: y.endOf('day').valueOf() };
+    }
+    case '7d':
+      return { start: now.subtract(7, 'day').startOf('day').valueOf(), end: now.endOf('day').valueOf() };
+    case '15d':
+      return { start: now.subtract(15, 'day').startOf('day').valueOf(), end: now.endOf('day').valueOf() };
+    case '30d':
+      return { start: now.subtract(30, 'day').startOf('day').valueOf(), end: now.endOf('day').valueOf() };
+    case 'month':
+      return { start: now.startOf('month').valueOf(), end: now.endOf('month').valueOf() };
+    case 'custom':
+      return {
+        start: from ? dayjs(from).startOf('day').valueOf() : -Infinity,
+        end: to ? dayjs(to).endOf('day').valueOf() : Infinity,
+      };
+    default:
+      return null;
+  }
+}
+
 export default function Loans() {
   const data = useData();
   const location = useLocation();
   const preselectClient = (location.state as { clientId?: string } | null)?.clientId;
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<'all' | LoanStatus>('all');
+  const [dateRange, setDateRange] = useState<DateRange>('all');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
   const [showNew, setShowNew] = useState(Boolean(preselectClient));
 
   const rows = useMemo(() => {
+    const range = computeRange(dateRange, customFrom, customTo);
     return data.loans
       .filter((l) => filter === 'all' || l.status === filter)
+      .filter((l) => {
+        if (!range) return true;
+        const t = dayjs(l.applicationDate).valueOf();
+        return t >= range.start && t <= range.end;
+      })
       .filter((l) => {
         if (!q) return true;
         const c = data.clientById(l.clientId);
@@ -35,13 +86,15 @@ export default function Loans() {
         return name.toLowerCase().includes(q.toLowerCase()) || l.purpose.toLowerCase().includes(q.toLowerCase());
       })
       .sort((a, b) => b.applicationDate.localeCompare(a.applicationDate));
-  }, [data, q, filter]);
+  }, [data, q, filter, dateRange, customFrom, customTo]);
 
   return (
     <div>
       <PageHeader
         title="Loans"
-        subtitle={`${data.loans.length} loans in the system`}
+        subtitle={dateRange === 'all' && filter === 'all' && !q
+          ? `${data.loans.length} loans in the system`
+          : `${rows.length} of ${data.loans.length} loans shown`}
         action={
           <button className="btn-primary" onClick={() => setShowNew(true)}>
             <Plus className="h-4 w-4" /> New Loan
@@ -53,6 +106,18 @@ export default function Loans() {
         <div className="relative min-w-[240px] flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input className="input !pl-9" placeholder="Search by client or purpose…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+        <div className="relative">
+          <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <select
+            className="input !w-auto cursor-pointer !pl-9 !pr-8 font-medium"
+            value={dateRange}
+            onChange={(e) => setDateRange(e.target.value as DateRange)}
+          >
+            {DATE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
         </div>
         <div className="flex flex-wrap gap-1 rounded-lg bg-white p-1 shadow-card">
           {FILTERS.map((s) => (
@@ -68,6 +133,18 @@ export default function Loans() {
           ))}
         </div>
       </div>
+
+      {dateRange === 'custom' && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg bg-white p-3 shadow-card">
+          <span className="text-sm font-medium text-slate-500">From</span>
+          <input type="date" className="input !w-auto" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
+          <span className="text-sm font-medium text-slate-500">To</span>
+          <input type="date" className="input !w-auto" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
+          {(customFrom || customTo) && (
+            <button className="btn-ghost !py-1.5 text-sm" onClick={() => { setCustomFrom(''); setCustomTo(''); }}>Clear</button>
+          )}
+        </div>
+      )}
 
       <div className="card overflow-hidden">
         {rows.length === 0 ? (
