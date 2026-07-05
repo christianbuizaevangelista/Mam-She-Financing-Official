@@ -5,6 +5,20 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mam-She Financing</title>
+    <script>
+      // Capture password setup/recovery links before the Supabase client
+      // consumes the URL hash on load.
+      try {
+        var h = window.location.hash || '';
+        if (h.indexOf('type=recovery') !== -1 || h.indexOf('type=invite') !== -1) {
+          var p = new URLSearchParams(h.replace(/^#/, ''));
+          window.__MAMSHE_RECOVERY__ = {
+            access_token: p.get('access_token'),
+            refresh_token: p.get('refresh_token'),
+          };
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

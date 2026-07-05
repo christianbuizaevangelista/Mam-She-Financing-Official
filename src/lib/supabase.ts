@@ -11,7 +11,10 @@ export const isSupabaseConfigured = Boolean(url && anonKey);
 
 export const supabase: SupabaseClient | null = isSupabaseConfigured
   ? createClient(url!, anonKey!, {
-      auth: { persistSession: true, autoRefreshToken: true },
+      // The inline script in index.html captures recovery/invite tokens from the
+      // URL hash and AuthProvider establishes the session via setSession(), so we
+      // disable the automatic URL handling here.
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
     })
   : null;
 

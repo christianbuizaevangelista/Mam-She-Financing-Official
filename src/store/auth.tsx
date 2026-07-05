@@ -16,20 +16,29 @@ export const useAuth = () => useContext(AuthContext);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [recovery, setRecovery] = useState(false);
+  // Seeded by the inline script in index.html when arriving from a setup/recovery link.
+  const [recovery, setRecovery] = useState<boolean>(() => Boolean((window as any).__MAMSHE_RECOVERY__));
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
       setLoading(false);
       return;
     }
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
+    const rec = (window as any).__MAMSHE_RECOVERY__ as { access_token?: string; refresh_token?: string } | undefined;
+    if (rec?.access_token && rec.refresh_token) {
+      // Establish the recovery session from the captured tokens so the owner can set a password.
+      supabase.auth
+        .setSession({ access_token: rec.access_token, refresh_token: rec.refresh_token })
+        .then(({ data }) => setSession(data.session))
+        .finally(() => setLoading(false));
+    } else {
+      supabase.auth.getSession().then(({ data }) => {
+        setSession(data.session);
+        setLoading(false);
+      });
+    }
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
-      // Arriving from a password setup/recovery email link.
       if (event === 'PASSWORD_RECOVERY') setRecovery(true);
       if (s?.user?.email) setAccount({ email: s.user.email, emailVerified: true });
     });
@@ -49,7 +58,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   if (recovery) {
-    return <SetPassword email={session?.user?.email} onDone={() => setRecovery(false)} />;
+    return (
+      <SetPassword
+        email={session?.user?.email}
+        onDone={() => {
+          (window as any).__MAMSHE_RECOVERY__ = false;
+          setRecovery(false);
+        }}
+      />
+    );
   }
 
   if (!session) return <Login />;
