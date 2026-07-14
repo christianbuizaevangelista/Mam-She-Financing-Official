@@ -15,7 +15,7 @@ const DEFAULT: Account = {
   name: 'StockUp Admin',
   role: 'Owner',
   phone: '0917 000 0000',
-  email: 'owner@stockupph.ph',
+  email: 'christianbuizaevangelista@gmail.com',
   emailVerified: true,
 };
 
