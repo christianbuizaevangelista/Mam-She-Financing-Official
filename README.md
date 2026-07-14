@@ -1,4 +1,4 @@
-# Mam-She Financing
+# StockUp PH
 
 A microfinance lending management app for small-business / barangay lending. Built with **React + TypeScript + Vite + Tailwind CSS**, with charts by **Recharts**.
 

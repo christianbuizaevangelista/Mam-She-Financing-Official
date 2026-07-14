@@ -12,10 +12,10 @@ export interface Account {
 const KEY = 'mamshe.account.v1';
 
 const DEFAULT: Account = {
-  name: 'She Evangelista',
+  name: 'StockUp Admin',
   role: 'Owner',
   phone: '0917 000 0000',
-  email: 'teachandlearn38@gmail.com',
+  email: 'owner@stockupph.ph',
   emailVerified: true,
 };
 

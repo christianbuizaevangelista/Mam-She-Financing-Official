@@ -1,9 +1,9 @@
 {
-  "name": "mam-she-financing",
+  "name": "stockup-ph",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Mam-She Financing — microfinance lending management app",
+  "description": "StockUp PH — microfinance lending management app",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

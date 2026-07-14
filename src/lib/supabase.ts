@@ -22,5 +22,5 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
 export const OWNER_EMAIL = 'teachandlearn38@gmail.com';
 
 /** Shared demo account for trying/revising the app before the official launch. */
-export const DEMO_EMAIL = 'demo@mam-she.ph';
-export const DEMO_PASSWORD = 'MamSheDemo2026';
+export const DEMO_EMAIL = 'demo@stockupph.ph';
+export const DEMO_PASSWORD = 'StockUpDemo2026';

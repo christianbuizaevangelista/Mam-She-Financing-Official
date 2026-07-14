@@ -1,0 +1,10 @@
+/** StockUp PH mark — gold house in a red circle. */
+export function Logo({ className = 'h-9 w-9' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="StockUp PH">
+      <circle cx="32" cy="32" r="32" fill="#b91c1c" />
+      <path d="M15 31 L32 18 L49 31 Z" fill="#f4b942" />
+      <path d="M28 46 L28 40 Q28 34.5 32 34.5 Q36 34.5 36 40 L36 46 Z" fill="#faf3ea" />
+    </svg>
+  );
+}

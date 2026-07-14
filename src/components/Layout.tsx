@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { useData } from '../store/DataContext';
 import { useAccount } from '../store/account';
 import { useAuth } from '../store/auth';
+import { Logo } from './Logo';
 import { initialsFromName } from '../lib/format';
 import {
   LayoutDashboard,
@@ -39,7 +40,7 @@ export default function Layout() {
 
   async function logout() {
     setMenuOpen(false);
-    if (!confirm('Log out of Mam-She Financing?')) return;
+    if (!confirm('Log out of StockUp PH?')) return;
     await signOut(); // AuthProvider swaps to the login screen on sign-out
   }
 
@@ -48,15 +49,15 @@ export default function Layout() {
       {/* Sidebar */}
       <aside
         className={clsx(
-          'fixed inset-y-0 left-0 z-40 w-64 transform bg-slate-900 text-slate-300 transition-transform lg:static lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 w-64 transform bg-ink text-slate-300 transition-transform lg:static lg:translate-x-0',
           open ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         <div className="flex h-16 items-center gap-2.5 px-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-lg font-black text-white">₱</div>
+          <Logo className="h-9 w-9" />
           <div className="leading-tight">
-            <p className="text-sm font-bold text-white">Mam-She</p>
-            <p className="text-[11px] text-slate-400">Financing</p>
+            <p className="text-sm font-bold text-white">StockUp</p>
+            <p className="text-[11px] font-semibold text-gold-400">PH</p>
           </div>
         </div>
         <nav className="mt-2 space-y-1 px-3">
@@ -69,7 +70,7 @@ export default function Layout() {
               className={({ isActive }) =>
                 clsx(
                   'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                  isActive ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  isActive ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-ink-800 hover:text-white'
                 )
               }
             >
@@ -78,7 +79,7 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
-        <div className="absolute inset-x-3 bottom-4 rounded-lg bg-slate-800 p-3">
+        <div className="absolute inset-x-3 bottom-4 rounded-lg bg-ink-800 p-3">
           <p className="flex items-center gap-1.5 text-xs font-semibold text-white">
             <span className={clsx('h-2 w-2 rounded-full', usingSupabase ? 'bg-emerald-400' : 'bg-amber-400')} />
             {usingSupabase ? 'Supabase connected' : 'Local storage'}

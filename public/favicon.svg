@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#059669"/>
-  <text x="32" y="44" font-family="Inter, sans-serif" font-size="34" font-weight="800" fill="#fff" text-anchor="middle">₱</text>
+  <circle cx="32" cy="32" r="32" fill="#b91c1c"/>
+  <path d="M15 31 L32 18 L49 31 Z" fill="#f4b942"/>
+  <path d="M28 46 L28 40 Q28 34.5 32 34.5 Q36 34.5 36 40 L36 46 Z" fill="#faf3ea"/>
 </svg>

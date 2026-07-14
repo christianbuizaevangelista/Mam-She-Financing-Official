@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Lock, LogIn, ShieldCheck, AlertCircle, Loader2, Mail, FlaskConical, CheckCircle2 } from 'lucide-react';
 import { supabase, OWNER_EMAIL, DEMO_EMAIL, DEMO_PASSWORD } from '../lib/supabase';
+import { Logo } from '../components/Logo';
 
 export default function Login() {
   const [email, setEmail] = useState(OWNER_EMAIL);
@@ -70,8 +71,8 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
       <div className="w-full max-w-md">
         <div className="mb-6 flex flex-col items-center text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-2xl font-black text-white shadow-card">₱</div>
-          <h1 className="mt-3 text-xl font-bold text-slate-800">Mam-She Financing</h1>
+          <Logo className="h-14 w-14 shadow-card rounded-full" />
+          <h1 className="mt-3 text-xl font-bold text-ink">StockUp PH</h1>
           <p className="text-sm text-slate-500">Sign in to your account</p>
         </div>
 
