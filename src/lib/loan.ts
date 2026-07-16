@@ -106,6 +106,14 @@ export function buildSchedule(loan: Loan, idPrefix = ''): Repayment[] {
   return schedule;
 }
 
+/** Guarantors for a loan, falling back to the legacy single-guarantor fields. */
+export function loanGuarantors(loan: Loan): { name: string; email?: string; phone?: string }[] {
+  if (loan.guarantors?.length) return loan.guarantors;
+  if (loan.guarantor) return [{ name: loan.guarantor, email: loan.guarantorEmail, phone: loan.guarantorPhone }];
+  if (loan.officer) return [{ name: loan.officer }];
+  return [];
+}
+
 export function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }

@@ -10,9 +10,9 @@ import {
 } from 'recharts';
 import { useMemo, useState } from 'react';
 import { useData } from '../store/DataContext';
-import { portfolioMetrics, monthlySeries } from '../lib/metrics';
+import { portfolioMetrics, rangeSeries } from '../lib/metrics';
 import { peso, pesoCompact, pct } from '../lib/format';
-import { computeRange, inRange, type DateRange } from '../lib/dateRange';
+import { computeRange, inRange, DATE_OPTIONS, type DateRange } from '../lib/dateRange';
 import { PageHeader, DateRangeFilter } from '../components/ui';
 
 export default function Reports() {
@@ -21,17 +21,20 @@ export default function Reports() {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
 
+  const range = useMemo(() => computeRange(dateRange, customFrom, customTo), [dateRange, customFrom, customTo]);
+
   // Scope the report to loans whose application date falls in the range.
   const scoped = useMemo(() => {
-    const range = computeRange(dateRange, customFrom, customTo);
     if (!range) return data;
     const loans = data.loans.filter((l) => inRange(l.applicationDate, range));
     const ids = new Set(loans.map((l) => l.id));
     return { ...data, loans, repayments: data.repayments.filter((r) => ids.has(r.loanId)) };
-  }, [data, dateRange, customFrom, customTo]);
+  }, [data, range]);
 
   const m = portfolioMetrics(scoped);
-  const series = monthlySeries(scoped, 6);
+  // The chart follows the selected range (day buckets ≤ ~1 month, else months).
+  const series = useMemo(() => rangeSeries(scoped, range), [scoped, range]);
+  const bucket = series[0]?.bucket ?? 'month';
 
   return (
     <div>
@@ -66,12 +69,16 @@ export default function Reports() {
       </div>
 
       <div className="card p-5">
-        <h3 className="font-bold text-slate-800">Monthly Disbursements vs Collections</h3>
-        <p className="mb-4 text-sm text-slate-500">Last 6 months</p>
+        <h3 className="font-bold text-slate-800">Disbursements vs Collections</h3>
+        <p className="mb-4 text-sm text-slate-500">
+          {dateRange === 'all'
+            ? 'Last 6 months'
+            : `${DATE_OPTIONS.find((o) => o.value === dateRange)?.label} • by ${bucket}`}
+        </p>
         <ResponsiveContainer width="100%" height={320}>
           <BarChart data={series} margin={{ left: -12, right: 8, top: 4 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-            <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={12} stroke="#94a3b8" />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={12} stroke="#94a3b8" interval="preserveStartEnd" />
             <YAxis tickFormatter={(v) => pesoCompact(v)} tickLine={false} axisLine={false} fontSize={12} stroke="#94a3b8" width={56} />
             <Tooltip formatter={(v: number) => peso(v)} contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 13 }} cursor={{ fill: '#f1f5f9' }} />
             <Legend iconType="circle" iconSize={8} />

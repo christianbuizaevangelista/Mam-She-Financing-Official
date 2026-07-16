@@ -200,10 +200,6 @@ function AddClientModal({ open, onClose }: { open: boolean; onClose: () => void 
           </select>
         </div>
         <div>
-          <label className="label">Credit score</label>
-          <input className="input" type="number" min={300} max={850} value={form.creditScore} onChange={(e) => set('creditScore', Number(e.target.value))} />
-        </div>
-        <div>
           <label className="label">ID type</label>
           <select className="input" value={form.idType} onChange={(e) => set('idType', e.target.value)}>
             <option>PhilID</option>

@@ -85,6 +85,61 @@ export function monthlySeries(data: AppData, months = 6) {
   return out;
 }
 
+function sumDisbursed(data: AppData, s: dayjs.Dayjs, e: dayjs.Dayjs): number {
+  return data.loans
+    .filter((l) => l.disbursementDate && dayjs(l.disbursementDate).isAfter(s) && dayjs(l.disbursementDate).isBefore(e))
+    .reduce((sum, l) => sum + l.principal, 0);
+}
+
+function sumCollected(data: AppData, s: dayjs.Dayjs, e: dayjs.Dayjs): number {
+  return data.repayments
+    .filter((r) => r.paidDate && dayjs(r.paidDate).isAfter(s) && dayjs(r.paidDate).isBefore(e))
+    .reduce((sum, r) => sum + r.amountPaid, 0);
+}
+
+/**
+ * Disbursed vs collected series that follows the selected date range:
+ * day buckets for ranges up to ~a month, month buckets beyond that.
+ * Falls back to the last 6 months when no range is selected.
+ */
+export function rangeSeries(
+  data: AppData,
+  range: { start: number; end: number } | null
+): { label: string; disbursed: number; collected: number; bucket: 'day' | 'month' }[] {
+  if (!range || !Number.isFinite(range.start) || !Number.isFinite(range.end)) {
+    return monthlySeries(data, 6).map((m) => ({ ...m, label: m.month, bucket: 'month' as const }));
+  }
+  const start = dayjs(range.start).startOf('day');
+  const end = dayjs(range.end).endOf('day');
+  const days = end.diff(start, 'day') + 1;
+  const out: { label: string; disbursed: number; collected: number; bucket: 'day' | 'month' }[] = [];
+
+  if (days <= 31) {
+    for (let i = 0; i < days; i++) {
+      const d = start.add(i, 'day');
+      out.push({
+        label: d.format('MMM D'),
+        disbursed: sumDisbursed(data, d.startOf('day'), d.endOf('day')),
+        collected: sumCollected(data, d.startOf('day'), d.endOf('day')),
+        bucket: 'day',
+      });
+    }
+    return out;
+  }
+
+  let m = start.startOf('month');
+  while (m.isBefore(end)) {
+    out.push({
+      label: m.format('MMM YY'),
+      disbursed: sumDisbursed(data, m.startOf('month'), m.endOf('month')),
+      collected: sumCollected(data, m.startOf('month'), m.endOf('month')),
+      bucket: 'month',
+    });
+    m = m.add(1, 'month');
+  }
+  return out;
+}
+
 export function loanStatusBreakdown(data: AppData) {
   const counts: Record<string, number> = {};
   for (const l of data.loans) counts[l.status] = (counts[l.status] ?? 0) + 1;

@@ -70,10 +70,19 @@ export interface Loan {
   applicationDate: string; // ISO
   disbursementDate?: string; // ISO
   officer?: string; // legacy loan-officer field
-  guarantor?: string; // person guaranteeing the loan
-  guarantorEmail?: string; // used for past-due reminders to the guarantor
+  // Legacy single-guarantor fields (kept for older rows).
+  guarantor?: string;
+  guarantorEmail?: string;
   guarantorPhone?: string;
+  /** Guarantors for this loan. Tasty Food Reseller clients require two. */
+  guarantors?: Guarantor[];
   attachments?: LoanAttachment[]; // supporting documents
+}
+
+export interface Guarantor {
+  name: string;
+  email?: string;
+  phone?: string;
 }
 
 export type RepaymentStatus = 'pending' | 'paid' | 'partial' | 'overdue';

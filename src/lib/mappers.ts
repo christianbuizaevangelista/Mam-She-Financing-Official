@@ -82,6 +82,7 @@ export const loanToRow = (l: Loan) => ({
   guarantor: l.guarantor ?? null,
   guarantor_email: l.guarantorEmail ?? null,
   guarantor_phone: l.guarantorPhone ?? null,
+  guarantors: l.guarantors ?? null,
   attachments: l.attachments ?? null,
 });
 
@@ -103,6 +104,7 @@ export const rowToLoan = (r: any): Loan => ({
   guarantor: r.guarantor ?? undefined,
   guarantorEmail: r.guarantor_email ?? undefined,
   guarantorPhone: r.guarantor_phone ?? undefined,
+  guarantors: r.guarantors ?? undefined,
   attachments: r.attachments ?? undefined,
 });
 

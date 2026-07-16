@@ -79,9 +79,7 @@ export interface NewLoanInput {
   frequency: import('../types').PaymentFrequency;
   intervalDays?: number; // used when frequency === 'daily'
   purpose: string;
-  guarantor: string;
-  guarantorEmail?: string;
-  guarantorPhone?: string;
+  guarantors: import('../types').Guarantor[];
   attachments?: import('../types').LoanAttachment[];
   disburse: boolean;
 }
@@ -185,9 +183,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       frequency: input.frequency,
       status: input.disburse ? 'active' : 'pending',
       purpose: input.purpose,
-      guarantor: input.guarantor,
-      guarantorEmail: input.guarantorEmail || undefined,
-      guarantorPhone: input.guarantorPhone || undefined,
+      guarantors: input.guarantors,
+      // Mirror the first guarantor into the legacy fields so older views keep working.
+      guarantor: input.guarantors[0]?.name,
+      guarantorEmail: input.guarantors[0]?.email || undefined,
+      guarantorPhone: input.guarantors[0]?.phone || undefined,
       attachments: input.attachments && input.attachments.length ? input.attachments : undefined,
       applicationDate: now.toISOString(),
       disbursementDate: input.disburse ? now.toISOString() : undefined,

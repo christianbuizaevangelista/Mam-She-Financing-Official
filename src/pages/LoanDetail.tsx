@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, XCircle, Banknote, User, Paperclip } from 'lucide-react';
 import { useData } from '../store/DataContext';
 import { peso, pct, fmtDate, initials } from '../lib/format';
-import { loanSummary, installmentAmount } from '../lib/loan';
+import { loanSummary, installmentAmount, loanGuarantors } from '../lib/loan';
 import { Avatar, StatusBadge, ProgressBar, Modal } from '../components/ui';
 import type { Repayment } from '../types';
 
@@ -28,6 +28,7 @@ export default function LoanDetail() {
   const product = data.productById(loan.productId);
   const sum = loanSummary(loan, data.repayments);
   const schedule = data.repaymentsForLoan(loan.id);
+  const guarantors = loanGuarantors(loan);
 
   return (
     <div>
@@ -72,17 +73,22 @@ export default function LoanDetail() {
           <Term label="Frequency" value={freqText(loan)} />
           <Term label="Installment" value={peso(installmentAmount(loan), { decimals: true })} />
           <Term label="Disbursed" value={fmtDate(loan.disbursementDate)} />
-          <Term label="Guarantor" value={loan.guarantor ?? loan.officer ?? '—'} />
+          <Term label="Guarantors" value={String(guarantors.length || '—')} />
         </div>
 
-        {(loan.guarantorEmail || loan.guarantorPhone) && (
-          <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 border-t border-slate-100 pt-4 text-sm">
-            {loan.guarantorEmail && (
-              <span className="text-slate-500">Guarantor email: <span className="font-medium text-slate-700">{loan.guarantorEmail}</span></span>
-            )}
-            {loan.guarantorPhone && (
-              <span className="text-slate-500">Guarantor mobile: <span className="font-medium text-slate-700">{loan.guarantorPhone}</span></span>
-            )}
+        {guarantors.length > 0 && (
+          <div className="mt-5 border-t border-slate-100 pt-5">
+            <p className="mb-2 text-xs font-medium text-slate-400">
+              {guarantors.length > 1 ? 'Guarantors' : 'Guarantor'}
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {guarantors.map((g, i) => (
+                <div key={i} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                  <p className="font-semibold text-slate-800">{g.name}</p>
+                  <p className="text-xs text-slate-500">{g.email || 'no email'} · {g.phone || 'no mobile'}</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

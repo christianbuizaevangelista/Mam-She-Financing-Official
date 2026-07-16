@@ -2,9 +2,9 @@ import { useMemo, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Plus, Search, Landmark } from 'lucide-react';
 import { useData } from '../store/DataContext';
-import type { Loan, LoanStatus, PaymentFrequency, LoanAttachment } from '../types';
+import type { Loan, LoanStatus, PaymentFrequency, LoanAttachment, Guarantor } from '../types';
 import { peso, initials, fmtDate } from '../lib/format';
-import { loanSummary, monthsToInstallments } from '../lib/loan';
+import { loanSummary, monthsToInstallments, loanGuarantors } from '../lib/loan';
 import { computeRange, inRange, type DateRange } from '../lib/dateRange';
 import { TASTY_FOOD_RESELLER, TASTY_FOOD_RESELLER_RATE } from '../lib/constants';
 
@@ -133,7 +133,9 @@ export default function Loans() {
                           <span className="text-xs text-slate-400">{Math.round(sum.progress * 100)}%</span>
                         </div>
                       </td>
-                      <td className="td text-slate-500">{loan.guarantor ?? loan.officer ?? '—'}</td>
+                      <td className="td text-slate-500">
+                        {loanGuarantors(loan).map((g) => g.name).join(', ') || '—'}
+                      </td>
                       <td className="td"><StatusBadge status={loan.status} /></td>
                     </tr>
                   );
@@ -158,9 +160,7 @@ function NewLoanModal({ open, onClose, preselectClient }: { open: boolean; onClo
   const [frequency, setFrequency] = useState<PaymentFrequency>('monthly');
   const [intervalDays, setIntervalDays] = useState(15);
   const [purpose, setPurpose] = useState('');
-  const [guarantor, setGuarantor] = useState('');
-  const [guarantorEmail, setGuarantorEmail] = useState('');
-  const [guarantorPhone, setGuarantorPhone] = useState('');
+  const [guarantors, setGuarantors] = useState<Guarantor[]>([{ name: '', email: '', phone: '' }]);
   const [attachments, setAttachments] = useState<LoanAttachment[]>([]);
   const [disburse, setDisburse] = useState(true);
 
@@ -174,7 +174,20 @@ function NewLoanModal({ open, onClose, preselectClient }: { open: boolean; onClo
 
   useEffect(() => {
     setInterestRate(rateLocked ? TASTY_FOOD_RESELLER_RATE : DEFAULT_RATE);
+    // Tasty Food Reseller loans need two guarantors; everyone else needs one.
+    const needed = rateLocked ? 2 : 1;
+    setGuarantors((prev) => {
+      if (prev.length === needed) return prev;
+      if (prev.length < needed) {
+        return [...prev, ...Array.from({ length: needed - prev.length }, () => ({ name: '', email: '', phone: '' }))];
+      }
+      return prev.slice(0, needed);
+    });
   }, [rateLocked]);
+
+  function setGuarantorField(i: number, key: keyof Guarantor, value: string) {
+    setGuarantors((prev) => prev.map((g, idx) => (idx === i ? { ...g, [key]: value } : g)));
+  }
 
   const preview = useMemo(() => {
     const rate = (Number(interestRate) || 0) / 100;
@@ -188,7 +201,7 @@ function NewLoanModal({ open, onClose, preselectClient }: { open: boolean; onClo
   const invalid =
     !clientId ||
     !purpose ||
-    !guarantor ||
+    guarantors.some((g) => !g.name.trim()) ||
     principal <= 0 ||
     Number(interestRate) < 0 ||
     Number(numMonths) < 1 ||
@@ -205,9 +218,7 @@ function NewLoanModal({ open, onClose, preselectClient }: { open: boolean; onClo
       frequency,
       intervalDays: frequency === 'daily' ? Number(intervalDays) : undefined,
       purpose,
-      guarantor,
-      guarantorEmail,
-      guarantorPhone,
+      guarantors: guarantors.map((g) => ({ name: g.name.trim(), email: g.email?.trim(), phone: g.phone?.trim() })),
       attachments,
       disburse,
     });
@@ -217,9 +228,7 @@ function NewLoanModal({ open, onClose, preselectClient }: { open: boolean; onClo
   function reset() {
     setClientId('');
     setPurpose('');
-    setGuarantor('');
-    setGuarantorEmail('');
-    setGuarantorPhone('');
+    setGuarantors([{ name: '', email: '', phone: '' }]);
     setPrincipal(10000);
     setInterestRate(DEFAULT_RATE);
     setNumMonths(6);
@@ -268,24 +277,36 @@ function NewLoanModal({ open, onClose, preselectClient }: { open: boolean; onClo
           <input className="input" type="number" min={1} value={numMonths} onChange={(e) => setNumMonths(Number(e.target.value))} required />
         </div>
 
-        {/* Guarantor */}
-        <div className="sm:col-span-2 rounded-lg border border-slate-200 p-4">
-          <p className="mb-3 text-sm font-semibold text-slate-700">Guarantor</p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div>
-              <label className="label">Full name *</label>
-              <input className="input" placeholder="Full name of guarantor" value={guarantor} onChange={(e) => setGuarantor(e.target.value)} required />
+        {/* Guarantors — two are required for Tasty Food Reseller clients */}
+        <div className="sm:col-span-2 space-y-4 rounded-lg border border-slate-200 p-4">
+          <p className="text-sm font-semibold text-slate-700">
+            {guarantors.length > 1 ? 'Guarantors' : 'Guarantor'}
+            {rateLocked && (
+              <span className="ml-2 font-normal text-brand-600">2 required for {TASTY_FOOD_RESELLER}</span>
+            )}
+          </p>
+          {guarantors.map((g, i) => (
+            <div key={i}>
+              {guarantors.length > 1 && <p className="mb-1.5 text-xs font-semibold text-slate-400">Guarantor {i + 1}</p>}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div>
+                  <label className="label">Full name *</label>
+                  <input className="input" placeholder="Full name" value={g.name} onChange={(e) => setGuarantorField(i, 'name', e.target.value)} required />
+                </div>
+                <div>
+                  <label className="label">Email</label>
+                  <input className="input" type="email" placeholder="guarantor@email.com" value={g.email ?? ''} onChange={(e) => setGuarantorField(i, 'email', e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">Cellphone number</label>
+                  <input className="input" placeholder="0917 xxx xxxx" value={g.phone ?? ''} onChange={(e) => setGuarantorField(i, 'phone', e.target.value)} />
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="label">Email</label>
-              <input className="input" type="email" placeholder="guarantor@email.com" value={guarantorEmail} onChange={(e) => setGuarantorEmail(e.target.value)} />
-            </div>
-            <div>
-              <label className="label">Cellphone number</label>
-              <input className="input" placeholder="0917 xxx xxxx" value={guarantorPhone} onChange={(e) => setGuarantorPhone(e.target.value)} />
-            </div>
-          </div>
-          <p className="mt-2 text-xs text-slate-400">Used to remind the guarantor if the client is 7+ days past due.</p>
+          ))}
+          <p className="text-xs text-slate-400">
+            Each guarantor gets an email + text if the client is 7+ days past due.
+          </p>
         </div>
 
         <div className={frequency === 'daily' ? '' : 'sm:col-span-2'}>
