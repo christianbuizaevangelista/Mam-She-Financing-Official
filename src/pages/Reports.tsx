@@ -8,19 +8,52 @@ import {
   CartesianGrid,
   Legend,
 } from 'recharts';
+import { useMemo, useState } from 'react';
 import { useData } from '../store/DataContext';
 import { portfolioMetrics, monthlySeries } from '../lib/metrics';
 import { peso, pesoCompact, pct } from '../lib/format';
-import { PageHeader } from '../components/ui';
+import { computeRange, inRange, type DateRange } from '../lib/dateRange';
+import { PageHeader, DateRangeFilter } from '../components/ui';
 
 export default function Reports() {
   const data = useData();
-  const m = portfolioMetrics(data);
-  const series = monthlySeries(data, 6);
+  const [dateRange, setDateRange] = useState<DateRange>('all');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+
+  // Scope the report to loans whose application date falls in the range.
+  const scoped = useMemo(() => {
+    const range = computeRange(dateRange, customFrom, customTo);
+    if (!range) return data;
+    const loans = data.loans.filter((l) => inRange(l.applicationDate, range));
+    const ids = new Set(loans.map((l) => l.id));
+    return { ...data, loans, repayments: data.repayments.filter((r) => ids.has(r.loanId)) };
+  }, [data, dateRange, customFrom, customTo]);
+
+  const m = portfolioMetrics(scoped);
+  const series = monthlySeries(scoped, 6);
 
   return (
     <div>
-      <PageHeader title="Reports" subtitle="Portfolio performance & risk analytics" />
+      <PageHeader
+        title="Reports"
+        subtitle={
+          dateRange === 'all'
+            ? 'Portfolio performance & risk analytics'
+            : `${scoped.loans.length} of ${data.loans.length} loans in range`
+        }
+      />
+
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <DateRangeFilter
+          range={dateRange}
+          onRangeChange={setDateRange}
+          from={customFrom}
+          to={customTo}
+          onFromChange={setCustomFrom}
+          onToChange={setCustomTo}
+        />
+      </div>
 
       {/* Summary tiles */}
       <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">

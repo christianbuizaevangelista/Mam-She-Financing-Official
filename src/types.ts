@@ -71,6 +71,8 @@ export interface Loan {
   disbursementDate?: string; // ISO
   officer?: string; // legacy loan-officer field
   guarantor?: string; // person guaranteeing the loan
+  guarantorEmail?: string; // used for past-due reminders to the guarantor
+  guarantorPhone?: string;
   attachments?: LoanAttachment[]; // supporting documents
 }
 

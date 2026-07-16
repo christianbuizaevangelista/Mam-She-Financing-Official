@@ -6,6 +6,7 @@ import type { Client, Attachment } from '../types';
 import { peso, initials, creditRating, fmtDate } from '../lib/format';
 import { loanSummary } from '../lib/loan';
 import { fileToResizedDataUrl } from '../lib/image';
+import { BUSINESS_TYPES } from '../lib/constants';
 import { Avatar, Badge, StatusBadge, ProgressBar, EmptyState, Modal, AttachmentsField } from '../components/ui';
 
 export default function ClientDetail() {
@@ -207,7 +208,15 @@ function EditClientModal({ open, onClose, client }: { open: boolean; onClose: ()
         </div>
         <div>
           <label className="label">Business type</label>
-          <input className="input" value={form.businessType} onChange={(e) => set('businessType', e.target.value)} />
+          <select className="input" value={form.businessType} onChange={(e) => set('businessType', e.target.value)}>
+            <option value="">Select business type…</option>
+            {BUSINESS_TYPES.map((b) => (
+              <option key={b} value={b}>{b}</option>
+            ))}
+            {form.businessType && !BUSINESS_TYPES.includes(form.businessType) && (
+              <option value={form.businessType}>{form.businessType}</option>
+            )}
+          </select>
         </div>
         <div>
           <label className="label">Status</label>

@@ -1,12 +1,16 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import dayjs from 'dayjs';
-import { Plus, Search, Landmark, Calendar } from 'lucide-react';
+import { Plus, Search, Landmark } from 'lucide-react';
 import { useData } from '../store/DataContext';
 import type { Loan, LoanStatus, PaymentFrequency, LoanAttachment } from '../types';
 import { peso, initials, fmtDate } from '../lib/format';
 import { loanSummary, monthsToInstallments } from '../lib/loan';
-import { Avatar, StatusBadge, ProgressBar, PageHeader, Modal, EmptyState, AttachmentsField } from '../components/ui';
+import { computeRange, inRange, type DateRange } from '../lib/dateRange';
+import { TASTY_FOOD_RESELLER, TASTY_FOOD_RESELLER_RATE } from '../lib/constants';
+
+/** Default monthly interest for a new loan. */
+const DEFAULT_RATE = 3;
+import { Avatar, StatusBadge, ProgressBar, PageHeader, Modal, EmptyState, AttachmentsField, DateRangeFilter } from '../components/ui';
 
 const FILTERS: ('all' | LoanStatus)[] = ['all', 'active', 'overdue', 'pending', 'paid', 'defaulted'];
 
@@ -18,46 +22,6 @@ const FREQ_LABEL: Record<PaymentFrequency, string> = {
   monthly: 'monthly',
 };
 
-type DateRange = 'all' | 'today' | 'yesterday' | '7d' | '15d' | '30d' | 'month' | 'custom';
-
-const DATE_OPTIONS: { value: DateRange; label: string }[] = [
-  { value: 'all', label: 'All dates' },
-  { value: 'today', label: 'Today' },
-  { value: 'yesterday', label: 'Yesterday' },
-  { value: '7d', label: 'Last 7 days' },
-  { value: '15d', label: 'Last 15 days' },
-  { value: '30d', label: 'Last 30 days' },
-  { value: 'month', label: 'Current month' },
-  { value: 'custom', label: 'Customize date' },
-];
-
-/** Returns the [start, end] epoch range for a date filter, or null for "all". */
-function computeRange(range: DateRange, from: string, to: string): { start: number; end: number } | null {
-  const now = dayjs();
-  switch (range) {
-    case 'today':
-      return { start: now.startOf('day').valueOf(), end: now.endOf('day').valueOf() };
-    case 'yesterday': {
-      const y = now.subtract(1, 'day');
-      return { start: y.startOf('day').valueOf(), end: y.endOf('day').valueOf() };
-    }
-    case '7d':
-      return { start: now.subtract(7, 'day').startOf('day').valueOf(), end: now.endOf('day').valueOf() };
-    case '15d':
-      return { start: now.subtract(15, 'day').startOf('day').valueOf(), end: now.endOf('day').valueOf() };
-    case '30d':
-      return { start: now.subtract(30, 'day').startOf('day').valueOf(), end: now.endOf('day').valueOf() };
-    case 'month':
-      return { start: now.startOf('month').valueOf(), end: now.endOf('month').valueOf() };
-    case 'custom':
-      return {
-        start: from ? dayjs(from).startOf('day').valueOf() : -Infinity,
-        end: to ? dayjs(to).endOf('day').valueOf() : Infinity,
-      };
-    default:
-      return null;
-  }
-}
 
 export default function Loans() {
   const data = useData();
@@ -74,11 +38,7 @@ export default function Loans() {
     const range = computeRange(dateRange, customFrom, customTo);
     return data.loans
       .filter((l) => filter === 'all' || l.status === filter)
-      .filter((l) => {
-        if (!range) return true;
-        const t = dayjs(l.applicationDate).valueOf();
-        return t >= range.start && t <= range.end;
-      })
+      .filter((l) => inRange(l.applicationDate, range))
       .filter((l) => {
         if (!q) return true;
         const c = data.clientById(l.clientId);
@@ -107,18 +67,14 @@ export default function Loans() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input className="input !pl-9" placeholder="Search by client or purpose…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <div className="relative">
-          <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <select
-            className="input !w-auto cursor-pointer !pl-9 !pr-8 font-medium"
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value as DateRange)}
-          >
-            {DATE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-        </div>
+        <DateRangeFilter
+          range={dateRange}
+          onRangeChange={setDateRange}
+          from={customFrom}
+          to={customTo}
+          onFromChange={setCustomFrom}
+          onToChange={setCustomTo}
+        />
         <div className="flex flex-wrap gap-1 rounded-lg bg-white p-1 shadow-card">
           {FILTERS.map((s) => (
             <button
@@ -134,17 +90,6 @@ export default function Loans() {
         </div>
       </div>
 
-      {dateRange === 'custom' && (
-        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg bg-white p-3 shadow-card">
-          <span className="text-sm font-medium text-slate-500">From</span>
-          <input type="date" className="input !w-auto" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
-          <span className="text-sm font-medium text-slate-500">To</span>
-          <input type="date" className="input !w-auto" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
-          {(customFrom || customTo) && (
-            <button className="btn-ghost !py-1.5 text-sm" onClick={() => { setCustomFrom(''); setCustomTo(''); }}>Clear</button>
-          )}
-        </div>
-      )}
 
       <div className="card overflow-hidden">
         {rows.length === 0 ? (
@@ -208,18 +153,28 @@ function NewLoanModal({ open, onClose, preselectClient }: { open: boolean; onClo
   const data = useData();
   const [clientId, setClientId] = useState(preselectClient ?? '');
   const [principal, setPrincipal] = useState(10000);
-  const [interestRate, setInterestRate] = useState(3); // % per month
+  const [interestRate, setInterestRate] = useState(DEFAULT_RATE); // % per month
   const [numMonths, setNumMonths] = useState(6);
   const [frequency, setFrequency] = useState<PaymentFrequency>('monthly');
   const [intervalDays, setIntervalDays] = useState(15);
   const [purpose, setPurpose] = useState('');
   const [guarantor, setGuarantor] = useState('');
+  const [guarantorEmail, setGuarantorEmail] = useState('');
+  const [guarantorPhone, setGuarantorPhone] = useState('');
   const [attachments, setAttachments] = useState<LoanAttachment[]>([]);
   const [disburse, setDisburse] = useState(true);
 
   useEffect(() => {
     if (preselectClient) setClientId(preselectClient);
   }, [preselectClient]);
+
+  // Tasty Food Reseller clients get a fixed monthly interest rate.
+  const selectedClient = data.clientById(clientId);
+  const rateLocked = selectedClient?.businessType === TASTY_FOOD_RESELLER;
+
+  useEffect(() => {
+    setInterestRate(rateLocked ? TASTY_FOOD_RESELLER_RATE : DEFAULT_RATE);
+  }, [rateLocked]);
 
   const preview = useMemo(() => {
     const rate = (Number(interestRate) || 0) / 100;
@@ -251,6 +206,8 @@ function NewLoanModal({ open, onClose, preselectClient }: { open: boolean; onClo
       intervalDays: frequency === 'daily' ? Number(intervalDays) : undefined,
       purpose,
       guarantor,
+      guarantorEmail,
+      guarantorPhone,
       attachments,
       disburse,
     });
@@ -261,8 +218,10 @@ function NewLoanModal({ open, onClose, preselectClient }: { open: boolean; onClo
     setClientId('');
     setPurpose('');
     setGuarantor('');
+    setGuarantorEmail('');
+    setGuarantorPhone('');
     setPrincipal(10000);
-    setInterestRate(3);
+    setInterestRate(DEFAULT_RATE);
     setNumMonths(6);
     setFrequency('monthly');
     setAttachments([]);
@@ -287,16 +246,46 @@ function NewLoanModal({ open, onClose, preselectClient }: { open: boolean; onClo
         </div>
         <div>
           <label className="label">Interest rate (% per month) *</label>
-          <input className="input" type="number" step="0.1" min={0} value={interestRate} onChange={(e) => setInterestRate(Number(e.target.value))} required />
+          <input
+            className={`input ${rateLocked ? 'bg-slate-50 text-slate-500' : ''}`}
+            type="number"
+            step="0.1"
+            min={0}
+            value={interestRate}
+            onChange={(e) => setInterestRate(Number(e.target.value))}
+            readOnly={rateLocked}
+            required
+          />
+          {rateLocked && (
+            <p className="mt-1 text-xs font-medium text-brand-600">
+              Fixed {TASTY_FOOD_RESELLER_RATE}%/month for {TASTY_FOOD_RESELLER} clients.
+            </p>
+          )}
         </div>
 
         <div>
-          <label className="label">Guarantor *</label>
-          <input className="input" placeholder="Full name of guarantor" value={guarantor} onChange={(e) => setGuarantor(e.target.value)} required />
-        </div>
-        <div>
           <label className="label">Number of months *</label>
           <input className="input" type="number" min={1} value={numMonths} onChange={(e) => setNumMonths(Number(e.target.value))} required />
+        </div>
+
+        {/* Guarantor */}
+        <div className="sm:col-span-2 rounded-lg border border-slate-200 p-4">
+          <p className="mb-3 text-sm font-semibold text-slate-700">Guarantor</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+              <label className="label">Full name *</label>
+              <input className="input" placeholder="Full name of guarantor" value={guarantor} onChange={(e) => setGuarantor(e.target.value)} required />
+            </div>
+            <div>
+              <label className="label">Email</label>
+              <input className="input" type="email" placeholder="guarantor@email.com" value={guarantorEmail} onChange={(e) => setGuarantorEmail(e.target.value)} />
+            </div>
+            <div>
+              <label className="label">Cellphone number</label>
+              <input className="input" placeholder="0917 xxx xxxx" value={guarantorPhone} onChange={(e) => setGuarantorPhone(e.target.value)} />
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-slate-400">Used to remind the guarantor if the client is 7+ days past due.</p>
         </div>
 
         <div className={frequency === 'daily' ? '' : 'sm:col-span-2'}>

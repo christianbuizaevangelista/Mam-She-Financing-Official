@@ -75,6 +75,17 @@ export default function LoanDetail() {
           <Term label="Guarantor" value={loan.guarantor ?? loan.officer ?? '—'} />
         </div>
 
+        {(loan.guarantorEmail || loan.guarantorPhone) && (
+          <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 border-t border-slate-100 pt-4 text-sm">
+            {loan.guarantorEmail && (
+              <span className="text-slate-500">Guarantor email: <span className="font-medium text-slate-700">{loan.guarantorEmail}</span></span>
+            )}
+            {loan.guarantorPhone && (
+              <span className="text-slate-500">Guarantor mobile: <span className="font-medium text-slate-700">{loan.guarantorPhone}</span></span>
+            )}
+          </div>
+        )}
+
         {loan.attachments && loan.attachments.length > 0 && (
           <div className="mt-5 border-t border-slate-100 pt-5">
             <p className="mb-2 text-xs font-medium text-slate-400">Attachments</p>

@@ -1,8 +1,9 @@
 import React from 'react';
 import clsx from 'clsx';
-import { X, Paperclip, Upload } from 'lucide-react';
+import { X, Paperclip, Upload, Calendar } from 'lucide-react';
 import type { Attachment } from '../types';
 import { fmtSize } from '../lib/format';
+import { DATE_OPTIONS, type DateRange } from '../lib/dateRange';
 
 /* ---------------- Badge ---------------- */
 type Tone = 'slate' | 'emerald' | 'green' | 'amber' | 'red' | 'blue' | 'violet';
@@ -197,6 +198,52 @@ export function AttachmentsField({
         </label>
       </div>
     </div>
+  );
+}
+
+/* ---------------- DateRangeFilter ----------------
+   Dropdown + optional custom from/to inputs, shared by Loans and Reports. */
+export function DateRangeFilter({
+  range,
+  onRangeChange,
+  from,
+  to,
+  onFromChange,
+  onToChange,
+}: {
+  range: DateRange;
+  onRangeChange: (r: DateRange) => void;
+  from: string;
+  to: string;
+  onFromChange: (v: string) => void;
+  onToChange: (v: string) => void;
+}) {
+  return (
+    <>
+      <div className="relative">
+        <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <select
+          className="input !w-auto cursor-pointer !pl-9 !pr-8 font-medium"
+          value={range}
+          onChange={(e) => onRangeChange(e.target.value as DateRange)}
+        >
+          {DATE_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </div>
+      {range === 'custom' && (
+        <div className="flex w-full flex-wrap items-center gap-2 rounded-lg bg-white p-3 shadow-card">
+          <span className="text-sm font-medium text-slate-500">From</span>
+          <input type="date" className="input !w-auto" value={from} onChange={(e) => onFromChange(e.target.value)} />
+          <span className="text-sm font-medium text-slate-500">To</span>
+          <input type="date" className="input !w-auto" value={to} onChange={(e) => onToChange(e.target.value)} />
+          {(from || to) && (
+            <button className="btn-ghost !py-1.5 text-sm" onClick={() => { onFromChange(''); onToChange(''); }}>Clear</button>
+          )}
+        </div>
+      )}
+    </>
   );
 }
 

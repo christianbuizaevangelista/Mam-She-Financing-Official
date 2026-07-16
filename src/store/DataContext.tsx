@@ -80,6 +80,8 @@ export interface NewLoanInput {
   intervalDays?: number; // used when frequency === 'daily'
   purpose: string;
   guarantor: string;
+  guarantorEmail?: string;
+  guarantorPhone?: string;
   attachments?: import('../types').LoanAttachment[];
   disburse: boolean;
 }
@@ -184,6 +186,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       status: input.disburse ? 'active' : 'pending',
       purpose: input.purpose,
       guarantor: input.guarantor,
+      guarantorEmail: input.guarantorEmail || undefined,
+      guarantorPhone: input.guarantorPhone || undefined,
       attachments: input.attachments && input.attachments.length ? input.attachments : undefined,
       applicationDate: now.toISOString(),
       disbursementDate: input.disburse ? now.toISOString() : undefined,

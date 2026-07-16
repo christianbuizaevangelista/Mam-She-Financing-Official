@@ -5,6 +5,7 @@ import { useData } from '../store/DataContext';
 import type { Client, ClientStatus } from '../types';
 import { peso, initials, creditRating, fmtDate } from '../lib/format';
 import { loanSummary } from '../lib/loan';
+import { BUSINESS_TYPES } from '../lib/constants';
 import { Avatar, Badge, StatusBadge, PageHeader, Modal, EmptyState, AttachmentsField } from '../components/ui';
 
 const BRANCH_NAMES: Record<string, string> = {
@@ -183,7 +184,12 @@ function AddClientModal({ open, onClose }: { open: boolean; onClose: () => void 
         </div>
         <div>
           <label className="label">Business type</label>
-          <input className="input" placeholder="Sari-sari store, tricycle…" value={form.businessType} onChange={(e) => set('businessType', e.target.value)} />
+          <select className="input" value={form.businessType} onChange={(e) => set('businessType', e.target.value)}>
+            <option value="">Select business type…</option>
+            {BUSINESS_TYPES.map((b) => (
+              <option key={b} value={b}>{b}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="label">Branch</label>
