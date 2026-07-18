@@ -71,10 +71,9 @@ create table if not exists repayments (
 create index if not exists idx_loans_client on loans(client_id);
 create index if not exists idx_repayments_loan on repayments(loan_id);
 
--- Row Level Security.
--- NOTE: These policies allow the public 'anon' role full access so the demo
--- works without a login. For production, add Supabase Auth and scope policies
--- to authenticated staff users.
+-- Row Level Security — authenticated users only.
+-- The public 'anon' role gets NO access; a valid Supabase Auth session
+-- (role = authenticated) is required to read or write any table.
 alter table branches enable row level security;
 alter table clients enable row level security;
 alter table loan_products enable row level security;
@@ -87,6 +86,7 @@ begin
   foreach t in array array['branches','clients','loan_products','loans','repayments']
   loop
     execute format('drop policy if exists "demo_all" on %I;', t);
-    execute format('create policy "demo_all" on %I for all to anon, authenticated using (true) with check (true);', t);
+    execute format('drop policy if exists "auth_all" on %I;', t);
+    execute format('create policy "auth_all" on %I for all to authenticated using (true) with check (true);', t);
   end loop;
 end $$;

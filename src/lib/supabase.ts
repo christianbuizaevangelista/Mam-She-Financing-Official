@@ -20,7 +20,3 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
 
 /** The owner account. Only this address can set a password on first run. */
 export const OWNER_EMAIL = 'christianbuizaevangelista@gmail.com';
-
-/** Shared demo account for trying/revising the app before the official launch. */
-export const DEMO_EMAIL = 'demo@stockupph.ph';
-export const DEMO_PASSWORD = 'StockUpDemo2026';

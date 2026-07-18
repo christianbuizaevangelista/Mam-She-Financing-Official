@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Lock, LogIn, ShieldCheck, AlertCircle, Loader2, Mail, FlaskConical, CheckCircle2 } from 'lucide-react';
-import { supabase, OWNER_EMAIL, DEMO_EMAIL, DEMO_PASSWORD } from '../lib/supabase';
+import { Lock, LogIn, ShieldCheck, AlertCircle, Loader2, Mail, CheckCircle2 } from 'lucide-react';
+import { supabase, OWNER_EMAIL } from '../lib/supabase';
 import { Logo } from '../components/Logo';
 
 export default function Login() {
@@ -37,14 +37,6 @@ export default function Login() {
       return;
     }
     await signIn(email, password);
-  }
-
-  async function useDemo() {
-    setError(null);
-    setInfo(null);
-    setEmail(DEMO_EMAIL);
-    setPassword(DEMO_PASSWORD);
-    await signIn(DEMO_EMAIL, DEMO_PASSWORD);
   }
 
   async function sendReset() {
@@ -120,13 +112,6 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="my-4 flex items-center gap-3 text-xs text-slate-400">
-            <span className="h-px flex-1 bg-slate-200" /> or <span className="h-px flex-1 bg-slate-200" />
-          </div>
-          <button type="button" onClick={useDemo} disabled={busy} className="btn-secondary w-full">
-            <FlaskConical className="h-4 w-4" /> Use demo account
-          </button>
-          <p className="mt-1.5 text-center text-xs text-slate-400">Explore with sample data.</p>
         </div>
 
         <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-400">

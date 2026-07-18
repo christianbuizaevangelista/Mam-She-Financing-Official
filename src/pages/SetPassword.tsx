@@ -15,8 +15,8 @@ export default function SetPassword({ email, onDone }: { email?: string; onDone:
     e.preventDefault();
     setError(null);
     if (!supabase) return;
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    if (password.length < 10 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+      setError('Use at least 10 characters with lowercase, uppercase, and a number.');
       return;
     }
     if (password !== confirm) {
@@ -59,7 +59,7 @@ export default function SetPassword({ email, onDone }: { email?: string; onDone:
                 </div>
               )}
               <h2 className="font-bold text-slate-800">Choose a password</h2>
-              <p className="mb-4 mt-0.5 text-sm text-slate-500">Create the password you'll use to sign in.</p>
+              <p className="mb-4 mt-0.5 text-sm text-slate-500">At least 10 characters with a lowercase &amp; uppercase letter and a number.</p>
 
               <form onSubmit={submit} className="space-y-3">
                 <div>
